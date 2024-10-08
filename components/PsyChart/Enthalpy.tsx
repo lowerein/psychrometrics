@@ -75,7 +75,7 @@ export const Enthalpy = ({
         const intersection = getIntersection(a, b, c, d);
 
         if (intersection.y < corner1[1]) {
-          return <></>;
+          return <svg key={`enthalpy-${h}-${index}`} />;
         }
 
         let isUpperRegion = false;
@@ -84,7 +84,7 @@ export const Enthalpy = ({
           intersection.x = (maxW - d) / b;
           isUpperRegion = true;
 
-          if (h % 5000 !== 0) return <></>;
+          if (h % 5000 !== 0) return <svg key={`enthalpy-${h}-${index}`} />;
         }
 
         const delta = (maxW - minW) * 0.02;

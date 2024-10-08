@@ -6,6 +6,8 @@ import { getPsychrometrics } from "@/utils/helper";
 import * as psychrolib from "@/utils/psychrolib";
 import { MouseEventHandler, useState, useRef } from "react";
 import { StatePanel } from "@/components/PsyChart/StatePanel";
+import { PreviewPanel } from "@/components/PsyChart/PreviewPanel";
+import { psychrometrics } from "@/utils/psychrometrics";
 
 export default function Home() {
   psychrolib.SetUnitSystem(psychrolib.SI);
@@ -38,7 +40,6 @@ export default function Home() {
 
   const [minTemp, maxTemp] = options.tempRange;
   const [minW, maxW] = options.wRange;
-  //const parameters = Object.getOwnPropertyNames(visibility);
   const parameters = [
     "showDryBulb",
     "showRelativeHumidity",
@@ -47,20 +48,12 @@ export default function Home() {
     "showHumidityRatio",
     "showEnthalpy",
   ] as const;
-  const [states, setStates] = useState([getPsychrometrics(25, 20)]);
+  const [states, setStates] = useState<psychrometrics[]>([]);
+
+  // preview state
   const [position, setPosition] = useState([0, 0]);
-
-  const mouseMoveHandler: MouseEventHandler = (e) => {
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      setPosition([
-        Math.round(e.clientX - rect.left),
-        Math.round(e.clientY - rect.top),
-      ]);
-    }
-  };
-
-  const mouseClickHandler: MouseEventHandler = () => {
+  const [previewState, setPreviewState] = useState(getPsychrometrics(25, 20));
+  const getPsychrometricsFromPosition = (x: number, y: number) => {
     const xScale = d3.scaleLinear(
       [sizes.marginLeft, sizes.width - sizes.marginRight],
       [minTemp, maxTemp]
@@ -69,9 +62,8 @@ export default function Home() {
       [sizes.height - sizes.marginBottom, sizes.marginTop],
       [minW, maxW]
     );
-
-    const t = xScale(position[0]);
-    const w = yScale(position[1]);
+    const t = xScale(x);
+    const w = yScale(y);
 
     if (t <= maxTemp && t >= minTemp && w <= maxW && w >= minW) {
       const wetBulb = psychrolib.GetTWetBulbFromHumRatio(
@@ -80,80 +72,115 @@ export default function Home() {
         options.pressure
       );
       const state = getPsychrometrics(t, wetBulb, undefined, options.pressure);
-      setStates([state]);
+      return state;
+    } else return null;
+  };
+
+  const mouseMoveHandler: MouseEventHandler = (e) => {
+    if (!ref.current || !e.target) return;
+    const rect = ref.current.getBoundingClientRect();
+    const [x, y] = [e.clientX - rect.left, e.clientY - rect.top];
+    setPosition([x, y]);
+    const state = getPsychrometricsFromPosition(x, y);
+    if (state) setPreviewState(state);
+  };
+
+  const mouseClickHandler: MouseEventHandler = (e) => {
+    if (!ref.current || !e.target) return;
+
+    const [x, y] = position;
+    const state = getPsychrometricsFromPosition(x, y);
+
+    if (state) {
+      state.name = `State ${states.length + 1}`;
+      setStates([...states, state]);
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-row">
+    <div className="w-full h-full flex flex-row overflow-y-hidden">
       <div className="flex items-center justify-center w-full">
-        <PsyChart
-          ref={ref}
-          states={states}
-          {...visibility}
-          {...options}
-          {...sizes}
-          mouseClickHandler={mouseClickHandler}
-          mouseMoveHandler={mouseMoveHandler}
-        />
+        <div className="relative">
+          <PsyChart
+            ref={ref}
+            states={states}
+            {...visibility}
+            {...options}
+            {...sizes}
+            previewState={previewState}
+            mouseMoveHandler={mouseMoveHandler}
+            mouseClickHandler={mouseClickHandler}
+          />
+          <PreviewPanel state={previewState} />
+        </div>
       </div>
 
-      <div className="flex flex-col border">
-        <div className="flex flex-col p-4">
-          <label>
-            Temp
-            <input
-              className="border mx-2"
-              type="number"
-              value={options.tempRange[1]}
-              onChange={(e) =>
-                setOptions({
-                  ...options,
-                  tempRange: [options.tempRange[0], e.target.valueAsNumber],
-                })
-              }
-            />
-          </label>
+      <div className="flex flex-col border w-1/4 overflow-y-auto">
 
-          <label>
-            Max w
-            <input
-              className="border mx-2"
-              type="number"
-              min={0.01}
-              max={0.05}
-              step={0.001}
-              value={options.wRange[1]}
-              onChange={(e) =>
-                setOptions({
-                  ...options,
-                  wRange: [options.wRange[0], e.target.valueAsNumber],
-                })
-              }
-            />
-          </label>
-
-          {parameters.map((parameter) => (
-            <label key={parameter}>
+        <button className="group text-left p-4">
+          <div className="font-semibold">Settings</div>
+          <div className="flex-col group-focus:flex hidden">
+            <label>
+              Temp
               <input
-                type="checkbox"
-                checked={visibility[parameter]}
+                className="border mx-2"
+                type="number"
+                value={options.tempRange[1]}
                 onChange={(e) =>
-                  setVisibility({
-                    ...visibility,
-                    [parameter]: e.target.checked,
+                  setOptions({
+                    ...options,
+                    tempRange: [options.tempRange[0], e.target.valueAsNumber],
                   })
                 }
               />
-              {parameter}
             </label>
-          ))}
-        </div>
 
-        <div className="p-4">{states && <StatePanel state={states[0]} />}</div>
-        <div className="flex items-center justify-center w-full">
-          {position[0]}, {position[1]}
-        </div>
+            <label>
+              Max w
+              <input
+                className="border mx-2"
+                type="number"
+                min={0.01}
+                max={0.05}
+                step={0.001}
+                value={options.wRange[1]}
+                onChange={(e) =>
+                  setOptions({
+                    ...options,
+                    wRange: [options.wRange[0], e.target.valueAsNumber],
+                  })
+                }
+              />
+            </label>
+
+            {parameters.map((parameter) => (
+              <label key={parameter}>
+                <input
+                  type="checkbox"
+                  checked={visibility[parameter]}
+                  onChange={(e) =>
+                    setVisibility({
+                      ...visibility,
+                      [parameter]: e.target.checked,
+                    })
+                  }
+                />
+                {parameter}
+              </label>
+            ))}
+          </div>
+        </button>
+
+        {states.map((state, i) => (
+          <div key={`state-${i}`}>
+            <StatePanel
+              state={state}
+              deleteHandler={() => {
+                setStates(states.filter((s) => s.name !== state.name));
+              }}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

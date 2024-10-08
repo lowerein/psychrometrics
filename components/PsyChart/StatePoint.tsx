@@ -5,11 +5,13 @@ export const StatePoint = ({
   xScale,
   yScale,
   line,
+  color = "red",
 }: {
   states: psychrometrics[];
   xScale: d3.ScaleLinear<number, number, never>;
   yScale: d3.ScaleLinear<number, number, never>;
   line: d3.Line<[number, number]>;
+  color?: string;
 }) => {
   return (
     <>
@@ -31,14 +33,30 @@ export const StatePoint = ({
       })}
 
       {states.map((state, index) => (
-        <circle
-          className="z-50"
-          fill="red"
-          key={`state-${index}-dot`}
-          cx={xScale(state.dryBulb)}
-          cy={yScale(state.humidityRatio)}
-          r={6}
-        />
+        <>
+          <circle
+            className="z-50"
+            fill={color}
+            key={`state-${index}-dot`}
+            cx={xScale(state.dryBulb)}
+            cy={yScale(state.humidityRatio)}
+            r={6}
+          />
+
+          {state.name && state.name.length > 0 && (
+            <text
+              key={`state-${index}-text`}
+              x={xScale(state.dryBulb)}
+              y={yScale(state.humidityRatio)}
+              className="stroke-black"
+              textAnchor="middle"
+              dominantBaseline="hanging"
+              transform="translate(0,6)"
+            >
+              {state.name}
+            </text>
+          )}
+        </>
       ))}
     </>
   );

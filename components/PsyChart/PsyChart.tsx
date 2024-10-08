@@ -9,7 +9,7 @@ import { Enthalpy } from "./Enthalpy";
 import { StatePoint } from "./StatePoint";
 import { psychrometrics } from "@/utils/psychrometrics";
 import { MouseEventHandler } from "react";
-import React from "react";
+import React, {useState} from "react";
 
 interface PsyChartProps {
   width?: number;
@@ -28,8 +28,9 @@ interface PsyChartProps {
   wRange?: number[];
   pressure?: number;
   states?: psychrometrics[];
-  mouseMoveHandler?: MouseEventHandler;
+  previewState?: psychrometrics;
   mouseClickHandler?: MouseEventHandler;
+  mouseMoveHandler?: MouseEventHandler;
 }
 
 const PsyChart = React.forwardRef<SVGSVGElement, PsyChartProps>(
@@ -51,8 +52,9 @@ const PsyChart = React.forwardRef<SVGSVGElement, PsyChartProps>(
       wRange = [0, 30 / 1000],
       pressure = 101325,
       states = [],
-      mouseMoveHandler = undefined,
+      previewState = null,
       mouseClickHandler = undefined,
+      mouseMoveHandler = undefined,
     } = props;
 
     const [minTemp, maxTemp] = tempRange;
@@ -80,24 +82,33 @@ const PsyChart = React.forwardRef<SVGSVGElement, PsyChartProps>(
       yScale,
     };
 
+    const [isFocus, setIsFocus] = useState(false);
+
     return (
-      <svg
-        ref={ref}
-        width={width}
-        height={height}
-        className="border cursor-crosshair"
-        onMouseMove={mouseMoveHandler}
-        onMouseDown={mouseClickHandler}
-      >
-        <BoundaryLine {...params} />
-        {showDryBulb && <DryBulb {...params} />}
-        {showRelativeHumidity && <RelativeHumidity {...params} />}
-        {showWetBulb && <WetBulb {...params} />}
-        {showSpecificVolume && <SpecificVolume {...params} />}
-        {showHumidityRatio && <HumidityRatio {...params} />}
-        {showEnthalpy && <Enthalpy {...params} />}
-        <StatePoint states={states} {...params} />
-      </svg>
+      <div className="relative">
+        <svg
+          ref={ref}
+          width={width}
+          height={height}
+          className="border cursor-crosshair"
+          onMouseMove={mouseMoveHandler}
+          onMouseDown={mouseClickHandler}
+          onMouseEnter={()=>setIsFocus(true)}
+          onMouseLeave={()=>setIsFocus(false)}
+        >
+          <BoundaryLine {...params} />
+          {showDryBulb && <DryBulb {...params} />}
+          {showRelativeHumidity && <RelativeHumidity {...params} />}
+          {showWetBulb && <WetBulb {...params} />}
+          {showSpecificVolume && <SpecificVolume {...params} />}
+          {showHumidityRatio && <HumidityRatio {...params} />}
+          {showEnthalpy && <Enthalpy {...params} />}
+          <StatePoint states={states} {...params} />
+          {previewState && isFocus && (
+            <StatePoint color="orange" states={[previewState]} {...params} />
+          )}
+        </svg>
+      </div>
     );
   }
 );

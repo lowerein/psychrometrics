@@ -1,4 +1,6 @@
 export interface psychrometrics {
+  name?: string;
+  isVisible?: boolean;
   dryBulb: number;
   wetBulb: number;
   humidityRatio: number;

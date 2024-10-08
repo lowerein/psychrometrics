@@ -7,7 +7,7 @@ export const Navbar = () => {
         <Link href="/" className="hover:font-bold transition-all">
           Chart
         </Link>
-        <Link href="/" className="hover:font-bold transition-all">
+        <Link href="/Design" className="hover:font-bold transition-all">
           System Design
         </Link>
       </div>
