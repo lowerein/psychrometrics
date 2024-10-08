@@ -25,6 +25,7 @@ interface parameterProps {
 
   maxVelocity: number;
   maxPressureDrop: number;
+  pressure: number;
 }
 
 psychrolib.SetUnitSystem(SI);
@@ -41,6 +42,7 @@ export default function Page() {
     chilledWaterTemperature: [7, 12.5],
     maxVelocity: 2.5,
     maxPressureDrop: 300,
+    pressure: 101325,
   });
 
   const sensibleHeatRatio =
@@ -65,10 +67,34 @@ export default function Page() {
   );
 
   let caclulatedSupplyAir;
-  if (roomState && coolingCoilState)
+  let mixingDryBulb, mixingEnthalpy, mixingHumidityRatio, mixingWetBulb;
+
+  if (roomState && coolingCoilState) {
     caclulatedSupplyAir =
       parameters.sensibleHeat /
       (1.22 * (roomState.dryBulb - coolingCoilState.dryBulb));
+
+    mixingDryBulb =
+      (returnAirVolume * roomState.dryBulb +
+        parameters.freshAirVolume * outdoorState.dryBulb) /
+      parameters.supplyAirVolume;
+
+    mixingEnthalpy =
+      (returnAirVolume * roomState.enthalpy +
+        parameters.freshAirVolume * outdoorState.enthalpy) /
+      parameters.supplyAirVolume;
+
+    mixingHumidityRatio =
+      (returnAirVolume * roomState.humidityRatio +
+        parameters.freshAirVolume * outdoorState.humidityRatio) /
+      parameters.supplyAirVolume;
+
+    mixingWetBulb = psychrolib.GetTWetBulbFromHumRatio(
+      mixingDryBulb,
+      mixingHumidityRatio,
+      parameters.pressure
+    );
+  }
 
   return (
     <div className="flex flex-row overflow-y-hidden">
@@ -328,7 +354,7 @@ export default function Page() {
                   <input
                     type="text"
                     className="border bg-cyan-100"
-                    value={"Cooling off-coil"}
+                    defaultValue={"Cooling off-coil"}
                   />
                 </td>
                 <td className="p-2">
@@ -772,7 +798,211 @@ export default function Page() {
           </div>
         </div>
       </div>
-      <div className="grow"></div>
+      <div className="grow flex flex-col p-4">
+
+        <div className="flex flex-row space-x-4 w-full">
+          <table className="table-fixed">
+            <thead>
+              <tr>
+                <th colSpan={4} className="text-left italic">
+                  On-Coil Status (Mixing Point)
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr className="border-t">
+                <td className="p-2 text-center">
+                  V<sub>s</sub>
+                </td>
+                <td className="p-2 text-center">
+                  t<sub>m,DB</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  V<sub>r</sub>
+                </td>
+                <td className="p-2 text-center">
+                  t<sub>r,DB</sub>
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  V<sub>o</sub>
+                </td>
+                <td className="p-2 text-center">
+                  t<sub>o,DB</sub>
+                </td>
+              </tr>
+
+              <tr>
+                <td className="p-2 text-center">
+                  {parameters.supplyAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  t<sub>m,DB</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  {returnAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {roomState?.dryBulb.toFixed(1)}
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  {parameters.freshAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {outdoorState.dryBulb.toFixed(1)}
+                </td>
+              </tr>
+
+              <tr>
+                <td />
+                <td className="p-2 text-center text-red-500">
+                  t<sub>m,DB</sub>
+                </td>
+                <td className="p-2 text-red-500">=</td>
+                <td className="p-2 text-red-500" colSpan={3}>
+                  {mixingDryBulb?.toFixed(1)} °C
+                </td>
+              </tr>
+
+              <tr className="border-t">
+                <td className="p-2 text-center">
+                  V<sub>s</sub>
+                </td>
+                <td className="p-2 text-center">
+                  h<sub>m</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  V<sub>r</sub>
+                </td>
+                <td className="p-2 text-center">
+                  h<sub>r</sub>
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  V<sub>o</sub>
+                </td>
+                <td className="p-2 text-center">
+                  h<sub>o</sub>
+                </td>
+              </tr>
+
+              <tr>
+                <td className="p-2 text-center">
+                  {parameters.supplyAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  h<sub>m</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  {returnAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {(roomState?.enthalpy / 1000).toFixed(2)}
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  {parameters.freshAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {(outdoorState.enthalpy / 1000).toFixed(2)}
+                </td>
+              </tr>
+
+              <tr>
+                <td />
+                <td className="p-2 text-center text-red-500">
+                  h<sub>m</sub>
+                </td>
+                <td className="p-2 text-red-500">=</td>
+                <td className="p-2 text-red-500" colSpan={3}>
+                  {(mixingEnthalpy! / 1000).toFixed(1)} kJ/kg
+                </td>
+              </tr>
+
+              <tr className="border-t">
+                <td className="p-2 text-center">
+                  V<sub>s</sub>
+                </td>
+                <td className="p-2 text-center">
+                  w<sub>m</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  V<sub>r</sub>
+                </td>
+                <td className="p-2 text-center">
+                  w<sub>r</sub>
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  V<sub>o</sub>
+                </td>
+                <td className="p-2 text-center">
+                  w<sub>o</sub>
+                </td>
+              </tr>
+
+              <tr>
+                <td className="p-2 text-center">
+                  {parameters.supplyAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  w<sub>m</sub>
+                </td>
+                <td className="p-2">=</td>
+                <td className="p-2 text-center">
+                  {returnAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {(roomState?.humidityRatio).toFixed(4)}
+                </td>
+                <td className="p-2">+</td>
+                <td className="p-2 text-center">
+                  {parameters.freshAirVolume.toFixed(3)}
+                </td>
+                <td className="p-2 text-center">
+                  {(outdoorState?.humidityRatio).toFixed(4)}
+                </td>
+              </tr>
+
+              <tr>
+                <td />
+                <td className="p-2 text-center text-red-500">
+                  h<sub>m</sub>
+                </td>
+                <td className="p-2 text-red-500">=</td>
+                <td className="p-2 text-red-500" colSpan={3}>
+                  {mixingHumidityRatio?.toFixed(4)} kJ/kg dry air
+                </td>
+              </tr>
+
+              <tr className="border-t">
+                <td className="p-2 text-center text-blue-500" colSpan={5}>
+                  Wet Bulb Temperature by Psy.Chart
+                </td>
+              </tr>
+
+              <tr>
+                <td />
+                <td className="p-2 text-center text-red-500">
+                  t<sub>m,WB</sub>
+                </td>
+                <td className="p-2 text-red-500">=</td>
+                <td className="p-2 text-red-500" colSpan={3}>
+                  {mixingWetBulb?.toFixed(1)} °C
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
     </div>
   );
 }
