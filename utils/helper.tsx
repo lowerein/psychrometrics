@@ -32,7 +32,7 @@ const getPsychrometrics = (
   if (dryBulb === undefined && rh === undefined)
     throw new Error("Incorrect parameter");
 
-  if (wetBulb != undefined) {
+  if (wetBulb != undefined && !isNaN(Number(wetBulb))) {
     const psychrometrics = psychrolib.CalcPsychrometricsFromTWetBulb(
       dryBulb,
       wetBulb,
@@ -53,7 +53,7 @@ const getPsychrometrics = (
   } else {
     const psychrometrics = psychrolib.CalcPsychrometricsFromRelHum(
       dryBulb,
-      rh,
+      rh! * 0.01,
       pressure
     );
 
@@ -62,7 +62,7 @@ const getPsychrometrics = (
       wetBulb: psychrometrics[1],
       humidityRatio: psychrometrics[0],
       dewTemp: psychrometrics[2],
-      relHum: rh,
+      relHum: rh! / 100,
       vapPressure: psychrometrics[3],
       enthalpy: psychrometrics[4],
       volume: psychrometrics[5],

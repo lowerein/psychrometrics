@@ -97,6 +97,13 @@ export default function Home() {
     }
   };
 
+  // add state by value
+  const [manualState, setManualState] = useState<{
+    dryBulb?: number;
+    wetBulb?: number;
+    relHum?: number;
+  }>({ dryBulb: 25, wetBulb: 20 });
+
   return (
     <div className="w-full h-full flex flex-row overflow-y-hidden">
       <div className="flex items-center justify-center w-full">
@@ -116,22 +123,31 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col border w-1/4 overflow-y-auto">
-
-        <button className="group text-left p-4">
+        <div className="p-4">
           <div className="font-semibold">Settings</div>
-          <div className="flex-col group-focus:flex hidden">
+          <div className="flex-col flex">
             <label>
               Temp
               <input
                 className="border mx-2"
                 type="number"
+                min={35}
+                max={99}
                 value={options.tempRange[1]}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const temp = e.target.valueAsNumber;
+                  if (isNaN(temp)) return;
+                  if (
+                    temp > parseFloat(e.target.max) ||
+                    temp < parseFloat(e.target.min)
+                  )
+                    return;
+
                   setOptions({
                     ...options,
-                    tempRange: [options.tempRange[0], e.target.valueAsNumber],
-                  })
-                }
+                    tempRange: [options.tempRange[0], temp],
+                  });
+                }}
               />
             </label>
 
@@ -144,12 +160,20 @@ export default function Home() {
                 max={0.05}
                 step={0.001}
                 value={options.wRange[1]}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const w = e.target.valueAsNumber;
+                  if (isNaN(w)) return;
+                  if (
+                    w > parseFloat(e.target.max) ||
+                    w < parseFloat(e.target.min)
+                  )
+                    return;
+
                   setOptions({
                     ...options,
                     wRange: [options.wRange[0], e.target.valueAsNumber],
-                  })
-                }
+                  });
+                }}
               />
             </label>
 
@@ -169,18 +193,96 @@ export default function Home() {
               </label>
             ))}
           </div>
-        </button>
+        </div>
 
-        {states.map((state, i) => (
-          <div key={`state-${i}`}>
-            <StatePanel
-              state={state}
-              deleteHandler={() => {
-                setStates(states.filter((s) => s.name !== state.name));
-              }}
-            />
+        <div className="p-4">
+          <div className="font-semibold">Define states by value</div>
+          <div className="flex flex-col w-full space-y-2 py-2">
+            <div className="flex flex-row">
+              <div className="w-24">Dry Bulb</div>
+              <input
+                type="number"
+                className="border w-16 text-center"
+                onChange={(e) =>
+                  setManualState({
+                    ...manualState,
+                    dryBulb: parseFloat(e.target.value),
+                  })
+                }
+                min={minTemp}
+                max={maxTemp}
+                value={manualState.dryBulb}
+              />
+            </div>
+            <div className="flex flex-row">
+              <div className="w-24">Wet Bulb</div>
+              <input
+                type="number"
+                className="border w-16 text-center"
+                onChange={(e) =>
+                  setManualState({
+                    ...manualState,
+                    wetBulb: parseFloat(e.target.value),
+                  })
+                }
+                min={minTemp}
+                max={maxTemp}
+                value={manualState.wetBulb}
+              />
+            </div>
+            <div className="flex flex-row w-full justify-between">
+              <div className="w-full flex flex-row">
+                <div className="w-24">Rel Hum.</div>
+                <input
+                  type="number"
+                  className="border w-16 text-center"
+                  onChange={(e) =>
+                    setManualState({
+                      ...manualState,
+                      relHum: parseFloat(e.target.value),
+                    })
+                  }
+                  min={0}
+                  max={100}
+                  value={manualState.relHum}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  if (
+                    manualState.dryBulb &&
+                    (manualState.wetBulb || manualState.relHum)
+                  ) {
+                    const state = getPsychrometrics(
+                      manualState.dryBulb,
+                      manualState.wetBulb,
+                      manualState.relHum
+                    );
+
+                    state.name = `State ${states.length + 1}`;
+                    setStates([...states, state]);
+                  }
+                }}
+                className="border px-2 bg-slate-200 hover:bg-slate-50"
+              >
+                Add
+              </button>
+            </div>
           </div>
-        ))}
+        </div>
+
+        <>
+          {states.map((state, i) => (
+            <div key={`state-${i}`}>
+              <StatePanel
+                state={state}
+                deleteHandler={() => {
+                  setStates(states.filter((s) => s.name !== state.name));
+                }}
+              />
+            </div>
+          ))}
+        </>
       </div>
     </div>
   );
