@@ -8,10 +8,12 @@ import { MouseEventHandler, useState, useRef } from "react";
 import { StatePanel } from "@/components/PsyChart/StatePanel";
 import { PreviewPanel } from "@/components/PsyChart/PreviewPanel";
 import { psychrometrics } from "@/utils/psychrometrics";
+import useResizeObserver from "use-resize-observer";
 
 export default function Home() {
   psychrolib.SetUnitSystem(psychrolib.SI);
 
+  const { ref: psyRef, width, height } = useResizeObserver<HTMLDivElement>();
   const ref = useRef<SVGSVGElement>(null);
 
   const [visibility, setVisibility] = useState({
@@ -30,8 +32,8 @@ export default function Home() {
   });
 
   const sizes = {
-    width: 1000,
-    height: 800,
+    width: width!,
+    height: height!,
     marginTop: 50,
     marginRight: 80,
     marginBottom: 80,
@@ -106,7 +108,7 @@ export default function Home() {
 
   return (
     <div className="w-full h-full flex flex-row overflow-y-hidden">
-      <div className="flex items-center justify-center w-full">
+      <div className="flex p-4 items-center justify-center w-full" ref={psyRef}>
         <div className="relative">
           <PsyChart
             ref={ref}

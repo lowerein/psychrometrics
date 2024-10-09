@@ -90,7 +90,7 @@ const PsyChart = React.forwardRef<SVGSVGElement, PsyChartProps>(
           ref={ref}
           width={width}
           height={height}
-          className="border cursor-crosshair"
+          className="cursor-crosshair"
           onMouseMove={mouseMoveHandler}
           onMouseDown={mouseClickHandler}
           onMouseEnter={()=>setIsFocus(true)}
